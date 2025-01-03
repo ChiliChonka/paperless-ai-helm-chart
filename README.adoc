@@ -1,0 +1,17 @@
+= paperless-ai-helm-chart
+
+A Helm chart for deploying https://github.com/clusterzx/paperless-ai[clusterzx/paperless-ai] on Kubernetes.
+
+== 🚧 Under Construction 🚧
+
+Thank you for visiting the *paperless-ai Helm Chart* repository! 🎉
+
+This project is currently under construction, and we are actively working on setting it up. 
+Please check back soon for updates, or feel free to follow the repository to stay informed about our progress.
+
+In the meantime, if you have any questions or suggestions, don't hesitate to open an issue or reach out.
+
+Thank you for your patience and support!
+
+-- 
+The paperless-ai-helm-chart Team ❤️
