@@ -12,6 +12,27 @@ Please check back soon for updates, or feel free to follow the repository to sta
 In the meantime, if you have any questions or suggestions, don't hesitate to open an issue or reach out.
 
 Thank you for your patience and support!
-
--- 
+ 
 The paperless-ai-helm-chart Team ❤️
+
+
+== Helm Chart
+
+=== Repository
+
+The helm chart is not deployed to a repository yet.
+
+=== Installation
+
+You can define your custom values files based on `paperless-ai/values.yaml`. Just copy and update the values, which should be overwritten and delete the other parts out of your customized values.yaml file.
+
+Install the helm chart with the following command:
+
+`helm upgrade --install MY-RELEASE ./paperless-ai -f YOUR-CUSTOM-VALUES-FILE.yaml`
+
+Please keep in mind to set the paperless configuration. See current values.yaml file.
+
+[source,yaml]
+----
+include::paperless-ai/values.yaml[]
+----
