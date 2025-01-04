@@ -31,8 +31,3 @@ Install the helm chart with the following command:
 `helm upgrade --install MY-RELEASE ./paperless-ai -f YOUR-CUSTOM-VALUES-FILE.yaml`
 
 Please keep in mind to set the paperless configuration. See current values.yaml file.
-
-[source,yaml]
-----
-include::paperless-ai/values.yaml[]
-----
