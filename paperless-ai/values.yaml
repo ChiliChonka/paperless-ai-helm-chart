@@ -106,23 +106,17 @@ envs:
   - name: CONFIG_PATH
     value: "/app/config"
 
-
-# Additional volumeMounts on the output Deployment definition.
-volumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
-
 nodeSelector: {}
 
 tolerations: []
 
 affinity: {}
 
+# persistence volumes needed for configuration and processing data directory
 persistence:
   config:
     enabled: true
-    size: 1Gi
+    size: 100Mi
     storageClass: standard
     mountPath: "/app/config"
   data:
