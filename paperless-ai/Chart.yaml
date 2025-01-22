@@ -20,5 +20,7 @@ maintainers:
 sources:
   - https://github.com/ChiliChonka/paperless-ai-helm-chart
   - https://github.com/clusterzx/paperless-ai
+  - https://github.com/paperless-ngx/paperless-ngx
+  - https://github.com/ChiliChonka/paperless-ngx-helm-chart
 version: 0.1.0
-appVersion: "1.1.5"
+appVersion: "2.1.3"

@@ -77,34 +77,59 @@ resources: {}
 
 # This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe:
+  initialDelaySeconds: 90
   httpGet:
-    path: /health
+    path: /
+#    path: /health
     port: http
 readinessProbe:
+  initialDelaySeconds: 90
   httpGet:
-    path: /health
+    path: /
+#    path: /health
     port: http
 
 # paperless-ai config 
 paperless:
-  apiUrl: ""
-  apiToken: ""
+  apiUrl: "http://paperless-ngx:8000"
+  apiToken:
 
-aiProvider: ""
+ai:
+  provider: "openai"
+  addProcessedTag: yes
+  processedTagName: ai-processed
+
+prompt:
+  useTags: yes
+  tags: Rechnung,Kontoauszug,Vertrag,Arbeitgeber
 
 openAi:
-  apiKey: ""
+  apiKey: 
+  model: "gpt-4o-mini"
 
 ollama:
   apiUrl: ""
   model: ""
 
-scanInterval: ""
+scanInterval: "*/30 * * * *"
+
+systemPrompt: |-
+  Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
+  
+  {
+    "title": "xxxxx",
+    "correspondent": "xxxxxxxx",
+    "tags": ["Tag1", "Tag2", "Tag3", "Tag4"],
+    "document_date": "YYYY-MM-DD",
+    "language": "en/de/es/..."
+  }
+processPredefinedDocuments: "no"
+tags: "indexed,indexed2"
 
 # additional envs, if neccessary
-envs:
-  - name: CONFIG_PATH
-    value: "/app/config"
+envs: []
+#  - name: CONFIG_PATH
+#    value: "/app/config"
 
 nodeSelector: {}
 
@@ -115,10 +140,11 @@ affinity: {}
 # persistence volumes needed for configuration and processing data directory
 persistence:
   config:
-    enabled: true
-    size: 100Mi
-    storageClass: standard
-    mountPath: "/app/config"
+    mountPath: "/app/config/config.js"
+    subPath: "config.js"
+  envfile:
+    mountPath: "app/.env"
+    subPath: ".env"
   data:
     enabled: true
     size: 1Gi
