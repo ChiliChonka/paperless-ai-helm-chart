@@ -1,33 +1,14 @@
-# Default values for paperless-ai.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
-# Please keep this value to 1, while many instances running a crontab could lead to unknown results.
-replicaCount: 1
-
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
   repository: clusterzx/paperless-ai
-  # This sets the pull policy for images.
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  # Use latest or nightly to be up2date.
-  tag: ""
+  tag: "3.0.9"
 
-# This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
-# This is to override the chart name.
+
 nameOverride: ""
 fullnameOverride: ""
-
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/ 
 podAnnotations: {}
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 podLabels: {}
-
 podSecurityContext: {}
   # fsGroup: 2000
 
@@ -38,18 +19,12 @@ securityContext: {}
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
-
-# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
-  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
   type: ClusterIP
-  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   port: 3000
-
-# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
   enabled: false
-  className: ""
+  #className: ""
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
@@ -64,10 +39,6 @@ ingress:
   #      - chart-example.local
 
 resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   # limits:
   #   cpu: 100m
   #   memory: 128Mi
@@ -75,61 +46,18 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe:
   initialDelaySeconds: 90
   httpGet:
     path: /
-#    path: /health
     port: http
 readinessProbe:
   initialDelaySeconds: 90
   httpGet:
     path: /
-#    path: /health
     port: http
 
-# paperless-ai config 
-paperless:
-  apiUrl: "http://paperless-ngx:8000"
-  apiToken:
-
-ai:
-  provider: "openai"
-  addProcessedTag: yes
-  processedTagName: ai-processed
-
-prompt:
-  useTags: yes
-  tags: Rechnung,Kontoauszug,Vertrag,Arbeitgeber
-
-openAi:
-  apiKey: 
-  model: "gpt-4o-mini"
-
-ollama:
-  apiUrl: ""
-  model: ""
-
-scanInterval: "*/30 * * * *"
-
-systemPrompt: |-
-  Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
-  
-  {
-    "title": "xxxxx",
-    "correspondent": "xxxxxxxx",
-    "tags": ["Tag1", "Tag2", "Tag3", "Tag4"],
-    "document_date": "YYYY-MM-DD",
-    "language": "en/de/es/..."
-  }
-processPredefinedDocuments: "no"
-tags: "indexed,indexed2"
-
-# additional envs, if neccessary
 envs: []
-#  - name: CONFIG_PATH
-#    value: "/app/config"
 
 nodeSelector: {}
 
@@ -137,14 +65,7 @@ tolerations: []
 
 affinity: {}
 
-# persistence volumes needed for configuration and processing data directory
 persistence:
-  config:
-    mountPath: "/app/config/config.js"
-    subPath: "config.js"
-  envfile:
-    mountPath: "app/.env"
-    subPath: ".env"
   data:
     enabled: true
     size: 1Gi

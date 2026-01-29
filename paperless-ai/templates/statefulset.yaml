@@ -1,11 +1,12 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "paperless-ai.fullname" . }}
   labels:
     {{- include "paperless-ai.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  serviceName: {{ include "paperless-ai.fullname" . }}
+  replicas: 1
   selector:
     matchLabels:
       {{- include "paperless-ai.selectorLabels" . | nindent 6 }}
@@ -37,19 +38,22 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+
+          # initialDelay raus -> kommt aus deinen Values (falls dort gesetzt)
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+
           {{- with .Values.envs }}
-          envs:
+          env:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+
           envFrom:
-#            - configMapRef:
-#                name: {{ include "paperless-ai.fullname" . }}-config
           {{- if .Values.openAi.apiKey }}
             - secretRef:
                 name: {{ include "paperless-ai.fullname" . }}-open-ai-api
@@ -58,33 +62,11 @@ spec:
             - secretRef:
                 name: {{ include "paperless-ai.fullname" . }}-paperless-api
           {{- end }}
-          {{- if or .Values.persistence.config.enabled .Values.persistence.data.enabled }}
+
           volumeMounts:
-            - name: {{ include "paperless-ai.fullname" . }}-volume-config
-              mountPath: {{ .Values.persistence.config.mountPath }}
-              subPath: {{ .Values.persistence.config.subPath }}
-            - name: {{ include "paperless-ai.fullname" . }}-volume-envfile
-              mountPath: {{ .Values.persistence.envfile.mountPath }}
-              subPath: {{ .Values.persistence.envfile.subPath }}
-          {{- if .Values.persistence.data.enabled }}
-            - name: {{ include "paperless-ai.fullname" . }}-volume-data
-              mountPath: {{ .Values.persistence.data.mountPath }}
-          {{- end }}
-          {{- end }}
-      {{- if or .Values.persistence.config.enabled .Values.persistence.data.enabled }}
-      volumes:
-        - name: {{ include "paperless-ai.fullname" . }}-volume-config
-          configMap:
-            name: {{ include "paperless-ai.fullname" . }}-config-file
-        - name: {{ include "paperless-ai.fullname" . }}-volume-envfile
-          secret:
-            secretName: {{ include "paperless-ai.fullname" . }}-env-file
-      {{- if .Values.persistence.data.enabled }}
-        - name: {{ include "paperless-ai.fullname" . }}-volume-data
-          persistentVolumeClaim:
-            claimName: {{ include "paperless-ai.fullname" . }}-pvc-data
-      {{- end }}
-      {{- end }}
+            - name: data
+              mountPath: /app/data
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -97,3 +79,18 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "paperless-ai.labels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.data.accessMode | default "ReadWriteOnce" }}
+        {{- if .Values.persistence.data.storageClassName }}
+        storageClassName: {{ .Values.persistence.data.storageClassName | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.data.size | default "5Gi" }}
