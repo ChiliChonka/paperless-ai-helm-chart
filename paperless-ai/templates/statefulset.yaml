@@ -39,7 +39,6 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
 
-          # initialDelay raus -> kommt aus deinen Values (falls dort gesetzt)
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
@@ -51,16 +50,6 @@ spec:
           {{- with .Values.envs }}
           env:
             {{- toYaml . | nindent 12 }}
-          {{- end }}
-
-          envFrom:
-          {{- if .Values.openAi.apiKey }}
-            - secretRef:
-                name: {{ include "paperless-ai.fullname" . }}-open-ai-api
-          {{- end }}
-          {{- if .Values.paperless.apiToken }}
-            - secretRef:
-                name: {{ include "paperless-ai.fullname" . }}-paperless-api
           {{- end }}
 
           volumeMounts:

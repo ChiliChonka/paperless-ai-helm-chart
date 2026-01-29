@@ -47,12 +47,10 @@ resources: {}
   #   memory: 128Mi
 
 livenessProbe:
-  initialDelaySeconds: 90
   httpGet:
     path: /
     port: http
 readinessProbe:
-  initialDelaySeconds: 90
   httpGet:
     path: /
     port: http
