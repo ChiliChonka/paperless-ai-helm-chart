@@ -2,32 +2,38 @@
 
 A Helm chart for deploying https://github.com/clusterzx/paperless-ai[clusterzx/paperless-ai] on Kubernetes.
 
-== 🚧 Under Construction 🚧
+== ⚠️ Disclaimer
 
-Thank you for visiting the *paperless-ai Helm Chart* repository! 🎉
+Using this Helm chart is at your own risk. Always back up your https://github.com/paperless-ngx/paperless-ngx[paperless-ngx] data before deploying or upgrading.
 
-This project is currently under construction, and we are actively working on setting it up. 
-Please check back soon for updates, or feel free to follow the repository to stay informed about our progress.
+== Helm Chart (OCI)
 
-In the meantime, if you have any questions or suggestions, don't hesitate to open an issue or reach out.
+=== Install from the OCI registry
 
-Thank you for your patience and support!
- 
-The paperless-ai-helm-chart Team ❤️
+Replace `YOUR_ORG` with the GitHub organization or user that owns the chart package.
 
+[source,shell]
+----
+helm registry login ghcr.io
+helm upgrade --install paperless-ai oci://ghcr.io/YOUR_ORG/charts/paperless-ai
+----
 
-== Helm Chart
+=== Get the default values
 
-=== Repository
+[source,shell]
+----
+helm show values oci://ghcr.io/YOUR_ORG/charts/paperless-ai > values.yaml
+----
 
-The helm chart is not deployed to a repository yet.
+Then edit `values.yaml` and install with:
 
-=== Installation
+[source,shell]
+----
+helm upgrade --install paperless-ai oci://ghcr.io/YOUR_ORG/charts/paperless-ai -f values.yaml
+----
 
-You can define your custom values files based on `paperless-ai/values.yaml`. Just copy and update the values, which should be overwritten and delete the other parts out of your customized values.yaml file.
+== Contributing
 
-Install the helm chart with the following command:
+Contributions are welcome! Please review `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` before opening issues or pull requests.
 
-`helm upgrade --install MY-RELEASE ./paperless-ai -f YOUR-CUSTOM-VALUES-FILE.yaml`
-
-Please keep in mind to set the paperless configuration. See current values.yaml file.
+The project license is available in `LICENSE` at the repository root.

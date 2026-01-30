@@ -7,6 +7,7 @@ imagePullSecrets: []
 
 nameOverride: ""
 fullnameOverride: ""
+replicaCount: 1
 podAnnotations: {}
 podLabels: {}
 podSecurityContext: {}
@@ -67,5 +68,6 @@ persistence:
   data:
     enabled: true
     size: 1Gi
-    storageClass: standard
+    accessMode: ReadWriteOnce
+    storageClassName: ""
     mountPath: "/app/data"
