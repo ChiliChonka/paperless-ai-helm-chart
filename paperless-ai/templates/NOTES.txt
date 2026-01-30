@@ -1,0 +1,18 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Paperless-AI is reachable once the pod is ready. You must complete the initial setup in the web UI.
+
+{{- if .Values.ingress.enabled }}
+Ingress has been enabled for this release.
+  URL: http{{ if .Values.ingress.tls }}s{{ end }}://{{ (index .Values.ingress.hosts 0).host }}{{ (index (index .Values.ingress.hosts 0).paths 0).path }}
+{{- else }}
+To access Paperless-AI, run:
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "paperless-ai.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  kubectl port-forward --namespace {{ .Release.Namespace }} $POD_NAME 8080:{{ .Values.service.port }}
+
+Then open:
+  http://localhost:8080
+{{- end }}
+
+Next step:
+  Open the UI and complete the initial setup wizard.

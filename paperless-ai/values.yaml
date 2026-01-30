@@ -65,7 +65,6 @@ affinity: {}
 
 persistence:
   data:
-    enabled: true
     size: 1Gi
-    storageClass: standard
-    mountPath: "/app/data"
+    accessMode: ReadWriteOnce
+    storageClassName: ""
