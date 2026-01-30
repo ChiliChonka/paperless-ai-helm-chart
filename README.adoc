@@ -1,21 +1,93 @@
-= paperless-ai-helm-chart
+= paperless-ai Helm Chart
 
-A Helm chart for deploying https://github.com/clusterzx/paperless-ai[clusterzx/paperless-ai] on Kubernetes.
+Helm chart to deploy **paperless-ai** on Kubernetes.
 
-== ⚠️ Disclaimer
+> **Important:** paperless-ai is not a typical stateless 12-factor app. It uses a first-start web wizard and stores state locally (SQLite + config files). This chart is designed accordingly.
 
-Using this Helm chart is at your own risk.
+---
 
-Always back up your https://github.com/paperless-ngx/paperless-ngx[paperless-ngx] and your https://github.com/clusterzx/paperless-ai[paperless-ai] data before deploying or upgrading.
+## ⚠️ Important / Limitations
+
+### Single replica only (replicas=1)
+paperless-ai stores its configuration and state in a local SQLite database (and related config files).  
+Running multiple replicas would either create multiple independent instances or cause SQLite locking/corruption issues.
+
+**This chart is intended to run with exactly one replica.**
+
+### Persistent storage required
+Your configuration and state must survive pod restarts.  
+This chart persists **`/app/data`** using a PVC.
+
+### First start requires Web Wizard
+On first start you must complete the setup wizard in the web UI.  
+After that, the configuration/state stays on the persistent volume.
+
+### Kubernetes service env injection can break startup
+Kubernetes can inject `*_SERVICE_HOST` / `*_SERVICE_PORT` environment variables into pods.  
+paperless-ai (or its runtime) may accidentally interpret these and try to bind to the Service ClusterIP which can crash with errors like:
+
+`Error: bind EACCES tcp://10.x.x.x:3000`
+
+**Recommendation:** set `enableServiceLinks: false` on the pod spec (this chart does so by default / should do so).
+
+---
+
+== Requirements
+
+- Kubernetes: v1.25+ (recommended)
+- Helm: v3.8+
+- A default StorageClass (or configure `persistence.storageClassName`)
 
 == Helm Chart (OCI)
 
-=== Install from the OCI registry
-
+=== Install (OCI)
 
 [source,shell]
 ----
-helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai
+helm install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai \
+  --namespace paperless-ai --create-namespace
+----
+
+=== Upgrade (OCI)
+
+[source,shell]
+----
+helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai \
+  --namespace paperless-ai --create-namespace
+----
+
+=== Minimal values example
+
+[source,yaml]
+----
+# persistence is required
+persistence:
+  enabled: true
+  size: 5Gi
+  # storageClassName: longhorn
+
+# Optional: expose via ingress
+ingress:
+  enabled: false
+  # className: nginx
+  # hosts:
+  #   - host: paperless-ai.example.com
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+  # tls:
+  #   - secretName: paperless-ai-tls
+  #     hosts:
+  #       - paperless-ai.example.com
+----
+
+Upgrade with values file:
+
+[source,shell]
+----
+helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai \
+  --namespace paperai \
+  -f values.yaml
 ----
 
 === Get the default values

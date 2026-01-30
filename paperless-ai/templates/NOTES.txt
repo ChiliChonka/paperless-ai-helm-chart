@@ -1,18 +1,33 @@
-Thank you for installing {{ .Chart.Name }}!
+paperless-ai has been installed.
 
-Paperless-AI is reachable once the pod is ready. You must complete the initial setup in the web UI.
+IMPORTANT / LIMITATIONS
+- This application is stateful and uses a first-start web wizard.
+- It stores state in SQLite and related files.
+- It must run as a SINGLE replica (replicas=1).
+- Persistent storage is required for: /app/data
 
+ACCESS
 {{- if .Values.ingress.enabled }}
-Ingress has been enabled for this release.
-  URL: http{{ if .Values.ingress.tls }}s{{ end }}://{{ (index .Values.ingress.hosts 0).host }}{{ (index (index .Values.ingress.hosts 0).paths 0).path }}
+Ingress is enabled. Access your instance via the configured hostname(s).
 {{- else }}
-To access Paperless-AI, run:
-  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "paperless-ai.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  kubectl port-forward --namespace {{ .Release.Namespace }} $POD_NAME 8080:{{ .Values.service.port }}
+Ingress is disabled. You can access the UI using port-forward:
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "paperless-ai.fullname" . }} 3000:3000
 
 Then open:
-  http://localhost:8080
+  http://localhost:3000
 {{- end }}
 
-Next step:
-  Open the UI and complete the initial setup wizard.
+FIRST START
+- Open the web UI and complete the setup wizard once.
+- The generated configuration and SQLite DB will be stored on the persistent volume.
+
+TROUBLESHOOTING
+- If the pod is Pending due to PVC issues:
+    kubectl -n {{ .Release.Namespace }} get pvc
+    kubectl -n {{ .Release.Namespace }} describe pvc <pvc-name>
+    kubectl get storageclass
+
+- If you see errors like "EACCES bind tcp://10.x.x.x:3000":
+  This may be caused by Kubernetes service env injection (*_SERVICE_HOST).
+  Recommended: enableServiceLinks: false (chart should set this by default).
