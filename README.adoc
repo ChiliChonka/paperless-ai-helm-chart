@@ -86,7 +86,7 @@ Upgrade with values file:
 [source,shell]
 ----
 helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai \
-  --namespace paperai \
+  --namespace paperless-ai \
   -f values.yaml
 ----
 
