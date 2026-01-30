@@ -2,7 +2,7 @@ apiVersion: v2
 name: paperless-ai
 description: A Helm chart for deploying clusterzx/paperless-ai on Kubernetes.
 type: application
-home: https://github.com/ChiliChonka/paperless-ai-helm-chart
+home: https://github.com/chilichonka/paperless-ai-helm-chart
 keywords:
   - paperless-ngx
   - paperless
@@ -15,10 +15,10 @@ keywords:
   - Automated Document Analyzer
 maintainers:
   - name: ChiliChonka
-    url: https://github.com/ChiliChonka
+    url: https://github.com/chilichonka
 sources:
   - https://github.com/paperless-ngx/paperless-ngx
   - https://github.com/clusterzx/paperless-ai
-  - https://github.com/ChiliChonka/paperless-ai-helm-chart
+  - https://github.com/chilichonka/paperless-ai-helm-chart
 version: 0.1.0
 appVersion: "3.0.9"

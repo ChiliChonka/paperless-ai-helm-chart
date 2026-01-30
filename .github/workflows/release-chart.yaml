@@ -28,6 +28,6 @@ jobs:
         run: echo "${GHCR_TOKEN}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Push chart
-        env:
-          OWNER: ${{ github.repository_owner }}
-        run: helm push paperless-ai-*.tgz oci://ghcr.io/${OWNER}/charts
+        run: |
+          OWNER_LC="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          helm push paperless-ai-*.tgz "oci://ghcr.io/${OWNER_LC}/charts"

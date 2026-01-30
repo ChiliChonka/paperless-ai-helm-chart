@@ -16,21 +16,21 @@ Always back up your https://github.com/paperless-ngx/paperless-ngx[paperless-ngx
 [source,shell]
 ----
 helm registry login ghcr.io
-helm upgrade --install paperless-ai oci://ghcr.io/ChiliChonka/charts/paperless-ai
+helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai
 ----
 
 === Get the default values
 
 [source,shell]
 ----
-helm show values oci://ghcr.io/ChiliChonka/charts/paperless-ai > values.yaml
+helm show values oci://ghcr.io/chilichonka/charts/paperless-ai > values.yaml
 ----
 
 Then edit `values.yaml` and install with:
 
 [source,shell]
 ----
-helm upgrade --install paperless-ai oci://ghcr.io/ChiliChonka/charts/paperless-ai -f values.yaml
+helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai -f values.yaml
 ----
 
 == Contributing
