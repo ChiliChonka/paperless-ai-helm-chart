@@ -33,19 +33,6 @@ helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-a
 ----
 
 
-=== Values
-
-This is the raw content of the values.yaml
-
-[%collapsible]
-====
-[code,yaml]
-----
-include::paperless-ai/values.yaml[]
-----
-====
-
-
 == Versions
 
 [cols="1,1"]
