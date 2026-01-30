@@ -6,23 +6,23 @@ Helm chart to deploy **paperless-ai** on Kubernetes.
 
 ---
 
-## ⚠️ Important / Limitations
+== ⚠️ Important / Limitations
 
-### Single replica only (replicas=1)
+=== Single replica only (replicas=1)
 paperless-ai stores its configuration and state in a local SQLite database (and related config files).  
 Running multiple replicas would either create multiple independent instances or cause SQLite locking/corruption issues.
 
 **This chart is intended to run with exactly one replica.**
 
-### Persistent storage required
+=== Persistent storage required
 Your configuration and state must survive pod restarts.  
 This chart persists **`/app/data`** using a PVC.
 
-### First start requires Web Wizard
+=== First start requires Web Wizard
 On first start you must complete the setup wizard in the web UI.  
 After that, the configuration/state stays on the persistent volume.
 
-### Kubernetes service env injection can break startup
+=== Kubernetes service env injection can break startup
 Kubernetes can inject `*_SERVICE_HOST` / `*_SERVICE_PORT` environment variables into pods.  
 paperless-ai (or its runtime) may accidentally interpret these and try to bind to the Service ClusterIP which can crash with errors like:
 
@@ -97,6 +97,9 @@ helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-a
 helm show values oci://ghcr.io/chilichonka/charts/paperless-ai > paperless-ai-values.yaml
 ----
 
+== Recommendations
+
+It is recommended that you make a backup copy of your paperless-ngx and paperless-ai files before upgrading. In case of fundamental changes or other problems, you can then still perform a rollback.
 
 == Versions
 
