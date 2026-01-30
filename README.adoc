@@ -15,7 +15,6 @@ Always back up your https://github.com/paperless-ngx/paperless-ngx[paperless-ngx
 
 [source,shell]
 ----
-helm registry login ghcr.io
 helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai
 ----
 
