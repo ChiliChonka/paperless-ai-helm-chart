@@ -12,26 +12,25 @@ Always back up your https://github.com/paperless-ngx/paperless-ngx[paperless-ngx
 
 === Install from the OCI registry
 
-Replace `YOUR_ORG` with the GitHub organization or user that owns the chart package.
 
 [source,shell]
 ----
 helm registry login ghcr.io
-helm upgrade --install paperless-ai oci://ghcr.io/YOUR_ORG/charts/paperless-ai
+helm upgrade --install paperless-ai oci://ghcr.io/ChiliChonka/charts/paperless-ai
 ----
 
 === Get the default values
 
 [source,shell]
 ----
-helm show values oci://ghcr.io/YOUR_ORG/charts/paperless-ai > values.yaml
+helm show values oci://ghcr.io/ChiliChonka/charts/paperless-ai > values.yaml
 ----
 
 Then edit `values.yaml` and install with:
 
 [source,shell]
 ----
-helm upgrade --install paperless-ai oci://ghcr.io/YOUR_ORG/charts/paperless-ai -f values.yaml
+helm upgrade --install paperless-ai oci://ghcr.io/ChiliChonka/charts/paperless-ai -f values.yaml
 ----
 
 == Contributing
