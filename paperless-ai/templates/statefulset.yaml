@@ -6,7 +6,7 @@ metadata:
     {{- include "paperless-ai.labels" . | nindent 4 }}
 spec:
   serviceName: {{ include "paperless-ai.fullname" . }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: 1
   selector:
     matchLabels:
       {{- include "paperless-ai.selectorLabels" . | nindent 6 }}
@@ -55,12 +55,7 @@ spec:
 
           volumeMounts:
             - name: data
-              mountPath: {{ .Values.persistence.data.mountPath }}
-      {{- if not .Values.persistence.data.enabled }}
-      volumes:
-        - name: data
-          emptyDir: {}
-      {{- end }}
+              mountPath: /app/data
 
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -75,7 +70,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 
-  {{- if .Values.persistence.data.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -90,4 +84,3 @@ spec:
         resources:
           requests:
             storage: {{ .Values.persistence.data.size | default "5Gi" }}
-  {{- end }}

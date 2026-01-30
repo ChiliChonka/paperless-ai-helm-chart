@@ -4,7 +4,9 @@ A Helm chart for deploying https://github.com/clusterzx/paperless-ai[clusterzx/p
 
 == ⚠️ Disclaimer
 
-Using this Helm chart is at your own risk. Always back up your https://github.com/paperless-ngx/paperless-ngx[paperless-ngx] data before deploying or upgrading.
+Using this Helm chart is at your own risk.
+
+Always back up your https://github.com/paperless-ngx/paperless-ngx[paperless-ngx] and your https://github.com/clusterzx/paperless-ai[paperless-ai] data before deploying or upgrading.
 
 == Helm Chart (OCI)
 
