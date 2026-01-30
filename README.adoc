@@ -1,10 +1,9 @@
 = paperless-ai Helm Chart
 
-Helm chart to deploy **paperless-ai** on Kubernetes.
+Helm chart to deploy **https://github.com/clusterzx/paperless-ai[paperless-ai]** on Kubernetes.
 
 > **Important:** paperless-ai is not a typical stateless 12-factor app. It uses a first-start web wizard and stores state locally (SQLite + config files). This chart is designed accordingly.
 
----
 
 == ⚠️ Important / Limitations
 
@@ -30,7 +29,6 @@ paperless-ai (or its runtime) may accidentally interpret these and try to bind t
 
 **Recommendation:** set `enableServiceLinks: false` on the pod spec (this chart does so by default / should do so).
 
----
 
 == Requirements
 
