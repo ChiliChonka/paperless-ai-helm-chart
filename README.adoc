@@ -22,15 +22,40 @@ helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-a
 
 [source,shell]
 ----
-helm show values oci://ghcr.io/chilichonka/charts/paperless-ai > values.yaml
+helm show values oci://ghcr.io/chilichonka/charts/paperless-ai > paperless-ai-values.yaml
 ----
 
 Then edit `values.yaml` and install with:
 
 [source,shell]
 ----
-helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai -f values.yaml
+helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai -f paperless-ai-values.yaml
 ----
+
+
+=== Values
+
+This is the raw content of the values.yaml
+
+[%collapsible]
+====
+[code,yaml]
+----
+include::paperless-ai/values.yaml[]
+----
+====
+
+
+== Versions
+
+[cols="1,1"]
+|===
+|Helm Chart Version | paperless-ai App Version
+
+|0.1.1
+|3.0.9
+|===
+
 
 == Contributing
 
