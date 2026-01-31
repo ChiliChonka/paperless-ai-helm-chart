@@ -1,0 +1,44 @@
+# Example values for use with Ollama running in the same cluster
+# Run: helm install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai -f values-with-ollama.yaml
+#
+# Note: OpenAI/Ollama configuration is done through the first-start web wizard.
+# This file shows recommended settings when using Ollama in the same cluster.
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: paperless-ai.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+# Higher resources for AI workloads
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+# Enable network policy with Ollama access
+networkPolicy:
+  enabled: true
+  egress:
+    # Allow access to Ollama service (adjust namespace if needed)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+
+persistence:
+  data:
+    size: 5Gi
+
+# Note: In the first-start wizard, configure Ollama endpoint as:
+# http://ollama.ollama.svc.cluster.local:11434
+# (adjust namespace 'ollama' to match your Ollama deployment)

@@ -1,0 +1,20 @@
+# Minimal values for quick start / local development
+# Run: helm install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai -f values-minimal.yaml
+
+# Disable ingress for port-forward access
+ingress:
+  enabled: false
+
+# Minimal resources for local testing
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Smaller volume for testing
+persistence:
+  data:
+    size: 500Mi

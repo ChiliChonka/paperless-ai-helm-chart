@@ -1,70 +1,167 @@
+# -- Container image configuration
 image:
+  # -- Container image repository
   repository: clusterzx/paperless-ai
+  # -- Image pull policy
   pullPolicy: IfNotPresent
+  # -- Container image tag (defaults to Chart.AppVersion)
   tag: "3.0.9"
 
+# -- Image pull secrets for private registries
 imagePullSecrets: []
 
+# -- Override the chart name
 nameOverride: ""
+# -- Override the full release name
 fullnameOverride: ""
-podAnnotations: {}
-podLabels: {}
-podSecurityContext: {}
-  # fsGroup: 2000
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
+# -- Annotations to add to the pod
+podAnnotations: {}
+
+# -- Labels to add to the pod
+podLabels: {}
+
+# -- Security context for the pod
+# @default -- See values.yaml
+podSecurityContext:
+  fsGroup: 1000
+
+# -- Security context for the container
+# @default -- See values.yaml
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  # Note: readOnlyRootFilesystem is false because paperless-ai needs write access
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
   # runAsUser: 1000
+
+# -- Kubernetes Service configuration
 service:
+  # -- Service type
   type: ClusterIP
+  # -- Service port
   port: 3000
+
+# -- Ingress configuration
 ingress:
+  # -- Enable ingress
   enabled: true
-  #className: ""
+  # -- Ingress class name (e.g., nginx, traefik)
+  # className: ""
+  # -- Ingress annotations
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  # -- Ingress hosts configuration
   hosts:
     - host: localhost
       paths:
         - path: /
-          pathType: ImplementationSpecific
+          pathType: Prefix
+  # -- TLS configuration
   tls: []
-  #  - secretName: chart-example-tls
+  #  - secretName: paperless-ai-tls
   #    hosts:
-  #      - chart-example.local
+  #      - paperless-ai.example.com
 
-resources: {}
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+# -- Resource requests and limits
+# @default -- See values.yaml
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
 
+# -- Liveness probe configuration
+# @default -- See values.yaml
 livenessProbe:
   httpGet:
     path: /
     port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# -- Readiness probe configuration
+# @default -- See values.yaml
 readinessProbe:
   httpGet:
     path: /
     port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
 
+# -- Startup probe for slow-starting containers
+# @default -- See values.yaml
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 30
+
+# -- Additional environment variables
+# Note: OpenAI/Ollama configuration is handled via the first-start web wizard
 envs: []
+  # - name: TZ
+  #   value: "Europe/Berlin"
 
+# -- Node selector for pod scheduling
 nodeSelector: {}
 
+# -- Tolerations for pod scheduling
 tolerations: []
 
+# -- Affinity rules for pod scheduling
 affinity: {}
 
+# -- Persistent storage configuration
 persistence:
   data:
+    # -- Volume size
     size: 1Gi
+    # -- Access mode
     accessMode: ReadWriteOnce
+    # -- Storage class name (empty for default)
     storageClassName: ""
+
+# -- Network policy configuration
+networkPolicy:
+  # -- Enable network policy
+  enabled: false
+  # -- Additional ingress rules
+  # @default -- Allow traffic from same namespace
+  ingress: []
+    # - from:
+    #     - namespaceSelector:
+    #         matchLabels:
+    #           name: ingress-nginx
+  # -- Additional egress rules
+  # @default -- Allow all egress (needed for Ollama/OpenAI API calls)
+  egress: []
+    # - to:
+    #     - namespaceSelector: {}
+
+# -- Prometheus ServiceMonitor configuration
+# Requires the Prometheus Operator to be installed
+serviceMonitor:
+  # -- Enable ServiceMonitor
+  enabled: false
+  # -- Namespace for ServiceMonitor (defaults to release namespace)
+  namespace: ""
+  # -- Scrape interval
+  interval: 30s
+  # -- Additional labels for ServiceMonitor
+  labels: {}

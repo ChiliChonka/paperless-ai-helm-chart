@@ -1,0 +1,28 @@
+# helm unittest tests for NetworkPolicy
+# Run with: helm unittest paperless-ai/
+suite: NetworkPolicy tests
+templates:
+  - templates/networkpolicy.yaml
+tests:
+  - it: should not create NetworkPolicy by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create NetworkPolicy when enabled
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+
+  - it: should have both Ingress and Egress policy types
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - contains:
+          path: spec.policyTypes
+          content: Ingress
+      - contains:
+          path: spec.policyTypes
+          content: Egress

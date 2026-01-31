@@ -1,0 +1,61 @@
+# helm unittest tests for StatefulSet
+# Run with: helm unittest paperless-ai/
+suite: StatefulSet tests
+templates:
+  - templates/statefulset.yaml
+tests:
+  - it: should create a StatefulSet
+    asserts:
+      - isKind:
+          of: StatefulSet
+
+  - it: should have exactly 1 replica (single instance only)
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: should have enableServiceLinks set to false
+    asserts:
+      - equal:
+          path: spec.template.spec.enableServiceLinks
+          value: false
+
+  - it: should mount data volume at /app/data
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: data
+            mountPath: /app/data
+
+  - it: should use correct image
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: clusterzx/paperless-ai:.*
+
+  - it: should set resource limits
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.containers[0].resources
+
+  - it: should include liveness probe
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.containers[0].livenessProbe
+
+  - it: should include readiness probe
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.containers[0].readinessProbe
+
+  - it: should include startup probe when enabled
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.containers[0].startupProbe
+
+  - it: should create volume claim template
+    asserts:
+      - isNotEmpty:
+          path: spec.volumeClaimTemplates

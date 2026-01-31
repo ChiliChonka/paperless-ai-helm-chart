@@ -1,0 +1,33 @@
+# helm unittest tests for Ingress
+# Run with: helm unittest paperless-ai/
+suite: Ingress tests
+templates:
+  - templates/ingress.yaml
+tests:
+  - it: should create an Ingress when enabled
+    asserts:
+      - isKind:
+          of: Ingress
+
+  - it: should not create Ingress when disabled
+    set:
+      ingress.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should use Prefix pathType by default
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+
+  - it: should set TLS when configured
+    set:
+      ingress.tls:
+        - secretName: test-tls
+          hosts:
+            - test.example.com
+    asserts:
+      - isNotEmpty:
+          path: spec.tls

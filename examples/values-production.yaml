@@ -1,0 +1,69 @@
+# Production-ready values with security hardening
+# Run: helm install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai -f values-production.yaml
+
+# Ingress with TLS
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  hosts:
+    - host: paperless-ai.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: paperless-ai-tls
+      hosts:
+        - paperless-ai.example.com
+
+# Production resources
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+
+# Security hardening
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Enable network policy
+networkPolicy:
+  enabled: true
+
+# Larger persistent volume for production
+persistence:
+  data:
+    size: 10Gi
+    storageClassName: ""  # Use your production storage class
+
+# Node affinity example (adjust to your cluster)
+# affinity:
+#   nodeAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#       nodeSelectorTerms:
+#         - matchExpressions:
+#             - key: node-type
+#               operator: In
+#               values:
+#                 - application
+
+# Pod annotations for monitoring
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3000"

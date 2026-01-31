@@ -1,0 +1,26 @@
+# helm unittest tests for ServiceMonitor
+# Run with: helm unittest paperless-ai/
+suite: ServiceMonitor tests
+templates:
+  - templates/servicemonitor.yaml
+tests:
+  - it: should not create ServiceMonitor by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create ServiceMonitor when enabled
+    set:
+      serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+
+  - it: should set custom interval when specified
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.interval: 60s
+    asserts:
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 60s

@@ -1,0 +1,28 @@
+# helm unittest tests for Service
+# Run with: helm unittest paperless-ai/
+suite: Service tests
+templates:
+  - templates/service.yaml
+tests:
+  - it: should create a Service
+    asserts:
+      - isKind:
+          of: Service
+
+  - it: should be ClusterIP by default
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: should expose port 3000
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 3000
+
+  - it: should have http port name
+    asserts:
+      - equal:
+          path: spec.ports[0].name
+          value: http
