@@ -112,6 +112,9 @@ It is recommended that you make a backup copy of your paperless-ngx and paperles
 |===
 |Helm Chart Version | paperless-ai App Version
 
+|0.1.2
+|3.0.9
+
 |0.1.1
 |3.0.9
 |===
