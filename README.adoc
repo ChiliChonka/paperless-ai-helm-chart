@@ -58,15 +58,22 @@ helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-a
 
 [source,yaml]
 ----
-# persistence is required
+# persistence is required and is not possible to disable.
 persistence:
-  enabled: true
-  size: 5Gi
+  size: 10Gi
+  # ReadWriteOnce is the default
+  # accessMode: ReadWriteOnce 
   # storageClassName: longhorn
 
 # Optional: expose via ingress
+# ingress is disabled by default.
+# Please configure you ingress if neccessary
 ingress:
-  enabled: false
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+    paperless.ai/any-custom-annotation: "any custom value"
   # className: nginx
   # hosts:
   #   - host: paperless-ai.example.com
