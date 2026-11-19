@@ -1,0 +1,39 @@
+# Made-up render fixture; the referenced Secrets/ConfigMaps do not exist.
+# Paperless runs elsewhere (not in this cluster), behind HTTPS with an own CA.
+paperless:
+  url: https://paperless.example.com
+  publicUrl: https://paperless.example.com
+  existingSecret: example-paperless-token
+publicUrl: https://paperless-ai.example.com
+oidc:
+  enabled: true
+  issuer: https://sso.example.com/realms/example
+  existingSecret: example-paperless-ai-oidc
+  allowedGroups: [paperless, admins]
+  passwordLogin: false
+envs:
+  - {name: AI_PROVIDER, value: ollama}
+  - {name: OLLAMA_API_URL, value: "http://ollama.example.svc.cluster.local:11434"}
+  - name: CUSTOM_API_KEY
+    valueFrom: {secretKeyRef: {name: example-ai-keys, key: custom}}
+envFrom:
+  - secretRef: {name: example-ai-keys}
+extraCaCerts:
+  configMap: example-ca
+hostAliases:
+  - ip: 192.0.2.10
+    hostnames: [paperless.example.com]
+service:
+  port: 80
+ingress:
+  enabled: true
+  className: example
+  hosts:
+    - host: paperless-ai.example.com
+      paths: [{path: /, pathType: Prefix}]
+  tls:
+    - secretName: example-tls
+      hosts: [paperless-ai.example.com]
+persistence:
+  data:
+    storageClassName: example-block

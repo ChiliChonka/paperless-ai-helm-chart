@@ -1,7 +1,18 @@
+# paperless-ai 4.x: one Node.js process, state in /app/data (config.json, SQLite, models).
+# Everything can be configured in the web interface (setup wizard on the first start).
+# Every setting given here as an environment variable OVERRIDES the stored value and is shown
+# LOCKED in the web interface – set only what you want to pin.
+# Never put tokens, API keys or client secrets in values: reference existing Secrets.
+
 image:
   repository: clusterzx/paperless-ai
   pullPolicy: IfNotPresent
-  tag: "3.0.9"
+  # Defaults to the chart's appVersion.
+  tag: ""
+  # cpu  – amd64 and arm64, OCR and local embeddings on the CPU
+  # cuda – OCR on an NVIDIA GPU (amd64 only, CUDA 13, driver >= 580): the tag gets the suffix
+  #        -cuda. Request the GPU in `resources` (nvidia.com/gpu: 1), set `runtimeClassName` if needed.
+  variant: cpu
 
 imagePullSecrets: []
 
@@ -9,60 +20,146 @@ nameOverride: ""
 fullnameOverride: ""
 podAnnotations: {}
 podLabels: {}
-podSecurityContext: {}
-  # fsGroup: 2000
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+# Connection to Paperless-ngx. Paperless does not have to run in this cluster: use any address
+# the pod can reach (in-cluster Service, LAN address, public HTTPS URL).
+paperless:
+  # Address paperless-ai uses for API calls, with or without /api, e.g.
+  #   http://paperless-ngx.paperless-ngx.svc.cluster.local:8000   (same cluster)
+  #   https://paperless.example.com                                (anywhere else)
+  # Paperless-ngx >= 3.5 only accepts the host of its PAPERLESS_URL and localhost: for any other
+  # host name add it to PAPERLESS_ALLOWED_HOSTS on the Paperless side.
+  # Empty: enter it in the setup wizard.
+  url: ""
+  # Address for links opened in the browser, when it differs from `url`. Optional.
+  publicUrl: ""
+  # Existing Secret with the API token of a dedicated Paperless user (view + change documents,
+  # tags, correspondents, document types, custom fields). Empty: enter it in the setup wizard.
+  existingSecret: ""
+  tokenKey: api-token
+
+# Address of paperless-ai as the browser opens it, e.g. https://paperless-ai.example.com.
+# Needed for the single sign-on redirect URI; otherwise optional.
+publicUrl: ""
+
+# Reverse proxy hops in front of the pod (client IP for the login rate limit, secure cookies).
+# Empty: "1" when ingress.enabled, otherwise off.
+trustProxy: ""
+
+# Single sign-on with OpenID Connect (Keycloak, Authentik, Authelia …).
+# Redirect URI to register at the provider: <publicUrl>/api/auth/oidc/callback
+oidc:
+  enabled: false
+  # e.g. https://sso.example.com/realms/example
+  issuer: ""
+  clientId: paperless-ai
+  # Existing Secret with the client secret (confidential client).
+  existingSecret: ""
+  secretKey: client-secret
+  # Optional; empty = default of paperless-ai.
+  scopes: ""
+  buttonLabel: ""
+  usernameClaim: ""
+  groupsClaim: ""
+  # Only members of these groups may sign in. Empty = everyone the provider lets through.
+  allowedGroups: []
+  # Create the paperless-ai account on the first sign-in.
+  autoCreate: true
+  # Keep the password login next to SSO.
+  passwordLogin: true
+
+# Additional environment variables (list of EnvVar), e.g. to pin the AI provider:
+#   - {name: AI_PROVIDER, value: ollama}
+#   - {name: OLLAMA_API_URL, value: "http://ollama.ollama.svc.cluster.local:11434"}
+#   - {name: OLLAMA_MODEL, value: "qwen3:8b"}
+# All variables: https://github.com/clusterzx/paperless-ai#%EF%B8%8F-configuration
+# Names ending in _KEY, _SECRET, _TOKEN or _PASSWORD (API keys, JWT_SECRET …) must use
+# valueFrom (a Secret).
+envs: []
+
+# Additional envFrom sources, e.g. a Secret whose keys are variable names
+# (OPENAI_API_KEY, ANTHROPIC_API_KEY, CUSTOM_API_KEY, AZURE_API_KEY …):
+#   - secretRef: {name: paperless-ai-ai-keys}
+envFrom: []
+
+# Certificates of your own CA (Paperless or AI server with a self-signed certificate): a PEM
+# bundle from an existing ConfigMap or Secret, used through NODE_EXTRA_CA_CERTS.
+extraCaCerts:
+  configMap: ""
+  secret: ""
+  key: ca.crt
+
+# Map host names the pod cannot resolve (e.g. Paperless on the LAN) to an address.
+hostAliases: []
+
 service:
   type: ClusterIP
   port: 3000
+
 ingress:
   enabled: false
-  #className: ""
+  className: ""
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
   hosts:
     - host: paperless-ai.example.com
       paths:
         - path: /
-          pathType: ImplementationSpecific
+          pathType: Prefix
   tls: []
-  #  - secretName: chart-example-tls
+  #  - secretName: paperless-ai-tls
   #    hosts:
   #      - paperless-ai.example.com
 
-resources: {}
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+# Local embeddings take about 0.5 GB while indexing, OCR more (released when idle).
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    memory: 2Gi
 
+# The image itself runs as root; uid 1000 is its "node" user.
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  fsGroup: 1000
+  fsGroupChangePolicy: OnRootMismatch
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+runtimeClassName: ""
+
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  periodSeconds: 5
+  failureThreshold: 60
 livenessProbe:
   httpGet:
-    path: /
+    path: /health
     port: http
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
 readinessProbe:
   httpGet:
-    path: /
+    path: /health
     port: http
-
-envs: []
+  periodSeconds: 10
+  timeoutSeconds: 5
 
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
 
+# /app/data: config.json, paperless-ai.db, search index, downloaded models (~120 MB embedding
+# model, OCR models). Block storage: SQLite needs working file locks, never NFS.
+# The claim survives `helm uninstall` (volume claim template of the StatefulSet).
 persistence:
   data:
     size: 5Gi

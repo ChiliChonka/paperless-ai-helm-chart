@@ -1,0 +1,22 @@
+{{- /* Render-time checks; this template creates no objects. */ -}}
+{{- if not (has .Values.image.variant (list "cpu" "cuda")) }}
+{{- fail "image.variant must be cpu or cuda" }}
+{{- end }}
+{{- $o := .Values.oidc }}
+{{- if $o.enabled }}
+{{- $_ := required "oidc.issuer is required with oidc.enabled" $o.issuer }}
+{{- $_ := required "oidc.existingSecret is required with oidc.enabled (client secret, never in values)" $o.existingSecret }}
+{{- $_ := required "publicUrl is required with oidc.enabled (redirect URI <publicUrl>/api/auth/oidc/callback)" .Values.publicUrl }}
+{{- end }}
+{{- if and .Values.extraCaCerts.configMap .Values.extraCaCerts.secret }}
+{{- fail "extraCaCerts: set either configMap or secret, not both" }}
+{{- end }}
+{{- /* The secrets of paperless-ai end in _KEY/_SECRET/_TOKEN (API_KEY, OPENAI_API_KEY, JWT_SECRET,
+  OIDC_CLIENT_SECRET, PAPERLESS_API_TOKEN …); TOKEN_LIMIT, RESPONSE_TOKENS, PASSWORD_LOGIN are not. */}}
+{{- range $e := .Values.envs }}
+{{- if regexMatch "(^|_)(KEY|SECRET|TOKEN|PASSWORD)$" (upper $e.name) }}
+{{- if not $e.valueFrom }}
+{{- fail (printf "envs %s must use a Secret reference (valueFrom), never values" $e.name) }}
+{{- end }}
+{{- end }}
+{{- end }}

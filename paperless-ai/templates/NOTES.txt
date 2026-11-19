@@ -1,33 +1,34 @@
-paperless-ai has been installed.
-
-IMPORTANT / LIMITATIONS
-- This application is stateful and uses a first-start web wizard.
-- It stores state in SQLite and related files.
-- It must run as a SINGLE replica (replicas=1).
-- Persistent storage is required for: /app/data
+paperless-ai {{ .Chart.AppVersion }} has been installed (image {{ include "paperless-ai.image" . }}).
 
 ACCESS
 {{- if .Values.ingress.enabled }}
-Ingress is enabled. Access your instance via the configured hostname(s).
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
 {{- else }}
-Ingress is disabled. You can access the UI using port-forward:
-
-  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "paperless-ai.fullname" . }} 3000:3000
-
-Then open:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "paperless-ai.fullname" . }} 3000:{{ .Values.service.port }}
   http://localhost:3000
 {{- end }}
 
 FIRST START
-- Open the web UI and complete the setup wizard once.
-- The generated configuration and SQLite DB will be stored on the persistent volume.
+- Complete the setup wizard in the web interface: account, Paperless connection, AI provider.
+- Until the first account exists the wizard is open to EVERYONE who can reach it. Do not expose
+  the instance to the internet before the setup is done.
+- Settings set through values/environment variables are shown locked in the web interface.
 
-TROUBLESHOOTING
-- If the pod is Pending due to PVC issues:
-    kubectl -n {{ .Release.Namespace }} get pvc
-    kubectl -n {{ .Release.Namespace }} describe pvc <pvc-name>
-    kubectl get storageclass
+PAPERLESS-NGX
+{{- if .Values.paperless.url }}
+- paperless-ai connects to {{ .Values.paperless.url }}
+{{- else }}
+- No paperless.url set: enter the Paperless address in the setup wizard.
+{{- end }}
+- Paperless-ngx >= 3.5 only accepts the host of its PAPERLESS_URL and localhost. If paperless-ai
+  uses another host name (e.g. the internal Service), add it to PAPERLESS_ALLOWED_HOSTS of
+  Paperless-ngx – otherwise the connection test fails with "Bad Request (400)".
 
-- If you see errors like "EACCES bind tcp://10.x.x.x:3000":
-  This may be caused by Kubernetes service env injection (*_SERVICE_HOST).
-  Recommended: enableServiceLinks: false (chart should set this by default).
+UPGRADE FROM 3.x (chart 0.1.x)
+- Back up the volume first. On the first start data/.env and documents.db are migrated to
+  data/config.json and data/paperless-ai.db; the old files stay untouched.
+- Check the log: kubectl -n {{ .Release.Namespace }} logs statefulset/{{ include "paperless-ai.fullname" . }}
+
+Single replica only: SQLite and the scan schedule do not support more than one pod.
