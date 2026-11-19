@@ -1,110 +1,187 @@
 = paperless-ai Helm Chart
 
-Helm chart to deploy **https://github.com/clusterzx/paperless-ai[paperless-ai]** on Kubernetes.
+Helm chart to deploy **https://github.com/clusterzx/paperless-ai[paperless-ai]** 4.x on Kubernetes: automatic
+classification, tagging, OCR and a RAG chat for https://github.com/paperless-ngx/paperless-ngx[Paperless-ngx].
 
-> **Important:** paperless-ai is not a typical stateless 12-factor app. It uses a first-start web wizard and stores state locally (SQLite + config files). This chart is designed accordingly.
-
+> **Important:** paperless-ai is not a stateless 12-factor app. It is configured in a web wizard and keeps
+its state locally (`config.json`, SQLite, search index, models) in `/app/data`. This chart is designed
+accordingly.
 
 == ⚠️ Important / Limitations
 
-=== Single replica only (replicas=1)
-paperless-ai stores its configuration and state in a local SQLite database (and related config files).  
-Running multiple replicas would either create multiple independent instances or cause SQLite locking/corruption issues.
-
-**This chart is intended to run with exactly one replica.**
+=== Single replica only
+paperless-ai 4.x keeps everything in one SQLite database and one `config.json` that is read into memory, and
+the scan schedule runs inside the process without leader election. Two pods would process every document
+twice and overwrite each other's settings. The chart always runs exactly one pod (StatefulSet, the old pod
+stops before the new one starts).
 
 === Persistent storage required
-Your configuration and state must survive pod restarts.  
-This chart persists **`/app/data`** using a PVC.
+`/app/data` lives on a PVC from the StatefulSet's volume claim template (`data-<release>-0`). It survives
+`helm uninstall`. Use block storage: SQLite needs working file locks, never NFS.
 
-=== First start requires Web Wizard
-On first start you must complete the setup wizard in the web UI.  
-After that, the configuration/state stays on the persistent volume.
+=== Setup wizard is open until the first account exists
+On the first start the setup wizard creates the account and connects Paperless and the AI provider. Until
+then **everyone who can reach the instance can run it** – don't expose it to the internet before the setup
+is done.
 
-=== Kubernetes service env injection can break startup
-Kubernetes can inject `*_SERVICE_HOST` / `*_SERVICE_PORT` environment variables into pods.  
-paperless-ai (or its runtime) may accidentally interpret these and try to bind to the Service ClusterIP which can crash with errors like:
-
-`Error: bind EACCES tcp://10.x.x.x:3000`
-
-**Recommendation:** set `enableServiceLinks: false` on the pod spec (this chart does so by default / should do so).
-
+=== Environment variables lock settings
+Every setting given as an environment variable (through `paperless.*`, `oidc.*`, `envs`) overrides the
+stored value and is shown locked in the web interface. The defaults pin nothing.
 
 == Requirements
 
-- Kubernetes: v1.25+ (recommended)
-- Helm: v3.8+
-- A default StorageClass (or configure `persistence.storageClassName`)
+- Kubernetes v1.25+, Helm v3.8+
+- A default StorageClass (or `persistence.data.storageClassName`)
+- Paperless-ngx 2.x or 3.x, reachable from the pod – in the same cluster or anywhere else
 
-== Helm Chart (OCI)
-
-=== Install (OCI)
+== Install
 
 [source,shell]
 ----
 helm install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai \
-  --namespace paperless-ai --create-namespace
+  --namespace paperless-ai --create-namespace -f values.yaml
 ----
 
-=== Upgrade (OCI)
+All options with comments: `helm show values oci://ghcr.io/chilichonka/charts/paperless-ai`.
+**Never put tokens or keys in values** – the chart only references existing Secrets.
+
+=== Connect Paperless-ngx
+
+Create a dedicated user in Paperless-ngx (view + change documents, tags, correspondents, document types,
+custom fields), take its API token and store it in a Secret:
 
 [source,shell]
 ----
-helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai \
-  --namespace paperless-ai --create-namespace
+kubectl -n paperless-ai create secret generic paperless-ai-paperless --from-literal=api-token=<token>
 ----
-
-=== Minimal values example
 
 [source,yaml]
 ----
-# persistence is required and is not possible to disable.
-persistence:
-  size: 10Gi
-  # ReadWriteOnce is the default
-  # accessMode: ReadWriteOnce 
-  # storageClassName: longhorn
+paperless:
+  # Same cluster:     http://paperless-ngx.paperless-ngx.svc.cluster.local:8000
+  # Somewhere else:   https://paperless.example.com
+  url: https://paperless.example.com
+  publicUrl: https://paperless.example.com   # links in the browser, optional
+  existingSecret: paperless-ai-paperless
+----
 
-# Optional: expose via ingress
-# ingress is disabled by default.
-# Please configure you ingress if neccessary
+Leave `paperless.*` empty to enter the connection in the setup wizard instead.
+
+[IMPORTANT]
+====
+**Paperless-ngx 3.5 and newer** only accept requests for the host of their `PAPERLESS_URL` (and
+`localhost`). If paperless-ai uses a different host name – typically the internal Service while
+`PAPERLESS_URL` is the public address – the connection fails with
+`Paperless-ngx does not accept the host name "…" (HTTP 400)`. Either use the address from `PAPERLESS_URL`, or
+add the host to `PAPERLESS_ALLOWED_HOSTS` on the Paperless side (keep `localhost` in the list):
+
+`PAPERLESS_ALLOWED_HOSTS=paperless.example.com,paperless-ngx.paperless-ngx.svc.cluster.local,localhost`
+====
+
+Paperless outside the cluster:
+
+* host name not resolvable in the cluster → `hostAliases`
+* HTTPS with your own CA → `extraCaCerts.configMap` / `extraCaCerts.secret` (PEM bundle, used through
+  `NODE_EXTRA_CA_CERTS`)
+
+=== AI provider
+
+Choose it in the setup wizard, or pin it with `envs`; API keys come from a Secret:
+
+[source,yaml]
+----
+envs:
+  - {name: AI_PROVIDER, value: ollama}
+  - {name: OLLAMA_API_URL, value: "http://ollama.ollama.svc.cluster.local:11434"}
+  - {name: OLLAMA_MODEL, value: "qwen3:8b"}
+# or, e.g. for OpenAI: a Secret with the key OPENAI_API_KEY
+envFrom:
+  - secretRef: {name: paperless-ai-ai-keys}
+----
+
+All variables: https://github.com/clusterzx/paperless-ai#%EF%B8%8F-configuration[paperless-ai configuration].
+Variables ending in `_KEY`, `_SECRET`, `_TOKEN` or `_PASSWORD` are rejected in `envs` unless they use
+`valueFrom`.
+
+=== Ingress and single sign-on
+
+[source,yaml]
+----
+publicUrl: https://paperless-ai.example.com   # as the browser opens it
 ingress:
   enabled: true
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    kubernetes.io/tls-acme: "true"
-    paperless.ai/any-custom-annotation: "any custom value"
-  # className: nginx
-  # hosts:
-  #   - host: paperless-ai.example.com
-  #     paths:
-  #       - path: /
-  #         pathType: Prefix
-  # tls:
-  #   - secretName: paperless-ai-tls
-  #     hosts:
-  #       - paperless-ai.example.com
+  className: nginx
+  hosts:
+    - host: paperless-ai.example.com
+      paths: [{path: /, pathType: Prefix}]
+  tls:
+    - secretName: paperless-ai-tls
+      hosts: [paperless-ai.example.com]
+oidc:                                          # optional, e.g. Keycloak
+  enabled: true
+  issuer: https://sso.example.com/realms/example
+  clientId: paperless-ai
+  existingSecret: paperless-ai-oidc            # key client-secret
+  allowedGroups: [paperless]
 ----
 
-Upgrade with values file:
+With the ingress enabled the chart sets `TRUST_PROXY=1` (client IP for the login rate limit, secure cookies);
+override it with `trustProxy`. Redirect URI at the provider: `<publicUrl>/api/auth/oidc/callback`.
+
+=== GPU for OCR
+
+`image.variant: cuda` uses the `-cuda` image (amd64, CUDA 13, driver ≥ 580). Request the GPU yourself, e.g.
+`resources.limits."nvidia.com/gpu": 1`, and set `runtimeClassName` if your cluster needs one.
+
+=== Security defaults
+
+The pod runs as uid/gid 1000 (the image's `node` user) with a read-only root filesystem, no capabilities and
+`fsGroup: 1000`, so a volume written by paperless-ai 3.x as root stays readable. `/tmp` is an `emptyDir`.
+
+== Upgrade
+
+=== From chart 0.1.x (paperless-ai 3.x)
+
+Chart 0.1.x put version labels into the StatefulSet's volume claim template, which Kubernetes does not allow
+to change – a plain `helm upgrade` fails with `updates to statefulset spec for fields other than … are
+forbidden`. Remove the StatefulSet once **without** its pod and volume, then upgrade:
 
 [source,shell]
 ----
-helm upgrade --install paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai \
-  --namespace paperless-ai \
-  -f values.yaml
+# 1. Back up the volume (data-paperless-ai-0), e.g. with a Longhorn snapshot.
+# 2. Delete only the StatefulSet object; pod and PVC stay.
+kubectl -n paperless-ai delete statefulset paperless-ai --cascade=orphan
+# 3. Upgrade; the new StatefulSet takes over the PVC data-paperless-ai-0.
+helm upgrade paperless-ai oci://ghcr.io/chilichonka/charts/paperless-ai --version 1.0.0 \
+  -n paperless-ai -f values.yaml
+# 4. A pod that was not ready (0.1.x killed 3.x during startup) is not replaced on its own:
+kubectl -n paperless-ai delete pod paperless-ai-0
 ----
 
-=== Get the default values
+On the first start paperless-ai migrates `data/.env` to `data/config.json` and `documents.db` to
+`data/paperless-ai.db` (log: `Migrated legacy data/.env configuration …`). The 3.x files stay untouched.
+Sign in with your previous account and check the settings. Remove variables from `envs` that you set for
+3.x and now want to change in the web interface (`RAG_SERVICE_URL`, `RAG_SERVICE_ENABLED`, `PUID`, `PGID` are
+no longer used).
+
+[WARNING]
+====
+If your 3.x instance was reachable from the internet without an additional login in front of it, it may
+have been taken over through the 3.x setup wizard. Read the
+https://github.com/clusterzx/paperless-ai#upgrading-from-3x[upstream upgrade notes] before migrating: in
+that case start with an empty volume and replace the Paperless token and AI keys.
+====
+
+=== Between 1.x versions
+
+`helm upgrade` is enough; the volume claim template no longer changes between chart versions.
+
+== Development
 
 [source,shell]
 ----
-helm show values oci://ghcr.io/chilichonka/charts/paperless-ai > paperless-ai-values.yaml
+./scripts/check.sh   # lint, render with defaults and ci/test-values.yaml, render tests (Python + PyYAML)
 ----
-
-== Recommendations
-
-It is recommended that you make a backup copy of your paperless-ngx and paperless-ai files before upgrading. In case of fundamental changes or other problems, you can then still perform a rollback.
 
 == Versions
 
@@ -112,13 +189,15 @@ It is recommended that you make a backup copy of your paperless-ngx and paperles
 |===
 |Helm Chart Version | paperless-ai App Version
 
+|1.0.0
+|4.3.1
+
 |0.1.2
 |3.0.9
 
 |0.1.1
 |3.0.9
 |===
-
 
 == Contributing
 

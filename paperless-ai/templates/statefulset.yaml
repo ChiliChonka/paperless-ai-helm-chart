@@ -1,3 +1,13 @@
+{{- /*
+  One pod: SQLite and config.json on a ReadWriteOnce volume, the scan schedule runs in-process
+  without leader election. A StatefulSet stops the old pod before starting the new one.
+  enableServiceLinks: false – a Service named "paperless-ai" would inject
+  PAPERLESS_AI_PORT=tcp://<ip>:3000, which paperless-ai reads as its own port.
+*/ -}}
+{{- $o := .Values.oidc }}
+{{- $p := .Values.paperless }}
+{{- $ca := .Values.extraCaCerts }}
+{{- $trustProxy := .Values.trustProxy | default (ternary "1" "" .Values.ingress.enabled) }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -27,36 +37,125 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.runtimeClassName }}
+      runtimeClassName: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-
-          livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
-
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-
-          {{- with .Values.envs }}
-          env:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-
+          image: {{ include "paperless-ai.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - {name: PAPERLESS_AI_PORT, value: "3000"}
+            - {name: PAPERLESS_AI_DATA_DIR, value: /app/data}
+            {{- with $trustProxy }}
+            - {name: TRUST_PROXY, value: {{ . | quote }}}
+            {{- end }}
+            {{- with .Values.publicUrl }}
+            - {name: PAPERLESS_AI_URL, value: {{ . | quote }}}
+            {{- end }}
+            {{- with $p.url }}
+            - {name: PAPERLESS_API_URL, value: {{ . | quote }}}
+            {{- end }}
+            {{- with $p.publicUrl }}
+            - {name: PAPERLESS_PUBLIC_URL, value: {{ . | quote }}}
+            {{- end }}
+            {{- with $p.existingSecret }}
+            - name: PAPERLESS_API_TOKEN
+              valueFrom:
+                secretKeyRef: {name: {{ . | quote }}, key: {{ $p.tokenKey | quote }}}
+            {{- end }}
+            {{- if $o.enabled }}
+            - {name: OIDC_ENABLED, value: "true"}
+            - {name: OIDC_ISSUER, value: {{ $o.issuer | quote }}}
+            - {name: OIDC_CLIENT_ID, value: {{ $o.clientId | quote }}}
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: {{ $o.existingSecret | quote }}, key: {{ $o.secretKey | quote }}}
+            {{- with $o.scopes }}
+            - {name: OIDC_SCOPES, value: {{ . | quote }}}
+            {{- end }}
+            {{- with $o.buttonLabel }}
+            - {name: OIDC_BUTTON_LABEL, value: {{ . | quote }}}
+            {{- end }}
+            {{- with $o.usernameClaim }}
+            - {name: OIDC_USERNAME_CLAIM, value: {{ . | quote }}}
+            {{- end }}
+            {{- with $o.groupsClaim }}
+            - {name: OIDC_GROUPS_CLAIM, value: {{ . | quote }}}
+            {{- end }}
+            {{- with $o.allowedGroups }}
+            - {name: OIDC_ALLOWED_GROUPS, value: {{ join "," . | quote }}}
+            {{- end }}
+            - {name: OIDC_AUTO_CREATE, value: {{ $o.autoCreate | quote }}}
+            - {name: PASSWORD_LOGIN, value: {{ $o.passwordLogin | quote }}}
+            {{- end }}
+            {{- if or $ca.configMap $ca.secret }}
+            - {name: NODE_EXTRA_CA_CERTS, value: {{ printf "/etc/paperless-ai/ca/%s" $ca.key | quote }}}
+            {{- end }}
+            {{- with .Values.envs }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          {{- with .Values.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: data
               mountPath: /app/data
-
+            # Writable scratch space with a read-only root filesystem.
+            - name: tmp
+              mountPath: /tmp
+            {{- if or $ca.configMap $ca.secret }}
+            - name: ca
+              mountPath: /etc/paperless-ai/ca
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if $ca.configMap }}
+        - name: ca
+          configMap:
+            name: {{ $ca.configMap | quote }}
+            items: [{key: {{ $ca.key | quote }}, path: {{ $ca.key | quote }}}]
+        {{- else if $ca.secret }}
+        - name: ca
+          secret:
+            secretName: {{ $ca.secret | quote }}
+            items: [{key: {{ $ca.key | quote }}, path: {{ $ca.key | quote }}}]
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -70,11 +169,16 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 
+  {{- /*
+    volumeClaimTemplates cannot be changed on an existing StatefulSet: only labels that stay the
+    same across chart versions (chart 0.1.x had helm.sh/chart and the app version here, which
+    blocked every upgrade).
+  */}}
   volumeClaimTemplates:
     - metadata:
         name: data
         labels:
-          {{- include "paperless-ai.labels" . | nindent 10 }}
+          {{- include "paperless-ai.selectorLabels" . | nindent 10 }}
       spec:
         accessModes:
           - {{ .Values.persistence.data.accessMode | default "ReadWriteOnce" }}

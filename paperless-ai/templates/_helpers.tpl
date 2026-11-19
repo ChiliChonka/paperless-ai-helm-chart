@@ -49,3 +49,14 @@ Selector labels
 app.kubernetes.io/name: {{ include "paperless-ai.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Image: tag defaults to the appVersion; the cuda variant gets the suffix -cuda.
+*/}}
+{{- define "paperless-ai.image" -}}
+{{- $tag := .Values.image.tag | default .Chart.AppVersion }}
+{{- if and (eq .Values.image.variant "cuda") (not (hasSuffix "-cuda" $tag)) }}
+{{- $tag = printf "%s-cuda" $tag }}
+{{- end }}
+{{- printf "%s:%s" .Values.image.repository $tag }}
+{{- end }}
