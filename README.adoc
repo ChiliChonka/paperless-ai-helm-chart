@@ -183,6 +183,20 @@ that case start with an empty volume and replace the Paperless token and AI keys
 ./scripts/check.sh   # lint, render with defaults and ci/test-values.yaml, render tests (Python + PyYAML)
 ----
 
+=== Release
+
+1. In the PR: raise `version` (and `appVersion`) in `paperless-ai/Chart.yaml`, add a section `## <version>`
+   to `CHANGELOG.md` and a row to the table below. `check.sh` fails without the changelog section.
+2. After the merge: tag the merge commit and push the tag.
++
+[source,shell]
+----
+git tag -a chart-<version> -m "Chart <version>" && git push origin chart-<version>
+----
+3. The workflow `release-chart.yaml` checks that the tag matches `Chart.yaml`, runs the checks, pushes the
+   chart to GHCR and creates the GitHub release: text from `scripts/release-notes.sh` (versions, changelog
+   section, install commands, compare link), the packaged chart attached.
+
 == Versions
 
 [cols="1,1"]

@@ -10,4 +10,7 @@ helm template "$chart" "$chart" >/dev/null
 helm lint "$chart" --strict --quiet -f "$chart/ci/test-values.yaml"
 helm template "$chart" "$chart" -f "$chart/ci/test-values.yaml" >/dev/null
 python3 tests/test-chart.py
+# Every chart version needs its CHANGELOG.md section (the release text is built from it).
+version=$(sed -n 's/^version: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p' "$chart/Chart.yaml")
+./scripts/release-notes.sh "$version" >/dev/null
 echo "OK: $chart"
