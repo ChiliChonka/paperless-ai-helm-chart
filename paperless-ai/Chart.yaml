@@ -20,5 +20,5 @@ sources:
   - https://github.com/paperless-ngx/paperless-ngx
   - https://github.com/clusterzx/paperless-ai
   - https://github.com/chilichonka/paperless-ai-helm-chart
-version: 1.0.0
-appVersion: "4.3.1"
+version: 1.1.0
+appVersion: "4.5.1"

@@ -176,6 +176,20 @@ that case start with an empty volume and replace the Paperless token and AI keys
 
 `helm upgrade` is enough; the volume claim template no longer changes between chart versions.
 
+==== To chart 1.1.0 (paperless-ai 4.5)
+
+Database migrations run on the first start (4.4: prompt rules, 4.5: roles, libraries, built-in archive,
+workflows); the search index of _Ask your archive_ moves into `data/index.db`, with a backup in
+`data/backups/`. Back up the volume before upgrading. From the
+https://github.com/clusterzx/paperless-ai/blob/main/docs/guide/upgrading.md#to-45[upstream upgrade notes]:
+
+- Existing accounts become administrators; accounts added later are members.
+- API keys: deleting documents and managing labels are permissions of their own; a key of an administrator
+  acts as administrator only with the _Administration_ permission.
+- The built-in archive (paperless-ai without Paperless-ngx) is optional – existing installations stay in
+  companion mode. It stores files in `data/library` on the same volume, so size `persistence.data.size`
+  accordingly. Watch folders must not be inside `/app/data`; this chart has no extra volumes for them yet.
+
 == Development
 
 [source,shell]
@@ -202,6 +216,9 @@ git tag -a chart-<version> -m "Chart <version>" && git push origin chart-<versio
 [cols="1,1"]
 |===
 |Helm Chart Version | paperless-ai App Version
+
+|1.1.0
+|4.5.1
 
 |1.0.0
 |4.3.1

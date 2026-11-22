@@ -99,7 +99,8 @@ class FixtureTest(unittest.TestCase):
             self.assertIn("valueFrom", self.env[name], name)
 
     def test_runs_unprivileged_read_only(self):
-        # Verified against paperless-ai 4.3.1 on Longhorn, also with a root-owned 3.x data/.env.
+        # Verified against paperless-ai 4.3.1 on Longhorn, also with a root-owned 3.x data/.env; 4.5.1 with
+        # the same security context in Docker (upgrade from 4.3.1 on the same volume).
         self.assertEqual(self.pod["securityContext"]["runAsUser"], 1000)
         self.assertEqual(self.pod["securityContext"]["fsGroup"], 1000)
         self.assertTrue(self.main["securityContext"]["readOnlyRootFilesystem"])

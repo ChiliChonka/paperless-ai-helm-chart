@@ -4,6 +4,21 @@ One section per chart version, newest first. The section of a version becomes th
 GitHub release (`scripts/release-notes.sh`). `scripts/check.sh` fails when the version in
 `paperless-ai/Chart.yaml` has no section here – write it in the same PR that bumps the version.
 
+## 1.1.0
+
+paperless-ai **4.5.1** (from 4.3.1). `helm upgrade` is enough; migrations run on the first start. Back up the
+volume first and read README → *Upgrade* → *To chart 1.1.0*.
+
+- 4.4: prompt rules – different prompts and settings per kind of document (`PROMPT_RULES` via `envs`)
+- 4.5: optional built-in archive without Paperless-ngx (files in `data/library`), workflows, search syntax,
+  API for the Paperless-ngx mobile apps (`/ngx`), MCP server (`/mcp`), API keys with fine-grained permissions
+- 4.5: existing accounts become administrators; API keys need the new permissions to delete documents or
+  manage labels
+- 4.5.1: OCR with PP-OCRv6, model size selectable
+- Verified with the chart's security context (uid 1000, read-only root filesystem, `/tmp` as emptyDir):
+  4.3.1 started on an empty volume, then 4.5.1 on the same volume – migrations 10–18 applied, `/health` 200
+- Not yet: extra volumes for watch folders (`/scans`, `/consume`)
+
 ## 1.0.0
 
 paperless-ai **4.3.1**. paperless-ai 4.0 is a rewrite: one Node.js process, settings in
