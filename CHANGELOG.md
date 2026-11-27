@@ -4,6 +4,21 @@ One section per chart version, newest first. The section of a version becomes th
 GitHub release (`scripts/release-notes.sh`). `scripts/check.sh` fails when the version in
 `paperless-ai/Chart.yaml` has no section here – write it in the same PR that bumps the version.
 
+## 1.2.0
+
+paperless-ai **4.7.1** (from 4.5.1). `helm upgrade` is enough; migrations 19–20 run on the first start. Read
+README → *Upgrade* → *To chart 1.2.0*.
+
+- 4.5.2: dates, schedules and logs follow `TZ` (without it: UTC) – set it via `envs`
+- 4.6: office documents, text files and e-mails in the built-in archive (opt-in); LibreOffice is downloaded
+  once to `data/office` (~80 MB) and needs about 1 GB of memory while loaded
+- 4.6: OpenAI shuts `gpt-5`, `gpt-5-mini`, `gpt-5-nano` and `o3` down on 11 December 2026 – switch the model
+- 4.7: searchable PDFs and an OCR API server for Paperless-ngx (both opt-in, served on the existing port)
+- 4.7.1: scripts that sign in with a password and use the session cookie need the header `X-Requested-With`
+  for changes; API keys are not affected
+- Verified with the chart's security context (uid 1000, read-only root filesystem, `/tmp` as emptyDir):
+  4.5.1 started on an empty volume, then 4.7.1 on the same volume – migrations 19–20 applied, `/health` 200
+
 ## 1.1.0
 
 paperless-ai **4.5.1** (from 4.3.1). `helm upgrade` is enough; migrations run on the first start. Back up the

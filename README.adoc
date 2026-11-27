@@ -94,6 +94,8 @@ envs:
   - {name: AI_PROVIDER, value: ollama}
   - {name: OLLAMA_API_URL, value: "http://ollama.ollama.svc.cluster.local:11434"}
   - {name: OLLAMA_MODEL, value: "qwen3:8b"}
+  # dates, schedules and logs; without it paperless-ai uses UTC
+  - {name: TZ, value: Europe/Berlin}
 # or, e.g. for OpenAI: a Secret with the key OPENAI_API_KEY
 envFrom:
   - secretRef: {name: paperless-ai-ai-keys}
@@ -176,6 +178,23 @@ that case start with an empty volume and replace the Paperless token and AI keys
 
 `helm upgrade` is enough; the volume claim template no longer changes between chart versions.
 
+==== To chart 1.2.0 (paperless-ai 4.7)
+
+Migrations 19–20 run on the first start. From the upstream release notes (4.5.2 to 4.7.1):
+
+- Set `TZ` in `envs` (e.g. `Europe/Berlin`): "today", schedules of workflows and log times follow it, without it
+  UTC.
+- OpenAI shuts `gpt-5`, `gpt-5-mini`, `gpt-5-nano` and `o3` down on 11 December 2026; _Settings → AI provider_
+  offers the replacement. A model pinned with `envs` has to be changed there.
+- Office documents (built-in archive, opt-in): LibreOffice is downloaded once into `data/office` (~80 MB, on the
+  volume, so the read-only root filesystem is no obstacle) and takes about 1 GB of memory while loaded. Together
+  with OCR raise `resources.limits.memory` above the default 2Gi.
+- OCR API server (opt-in): Paperless-ngx in the same cluster reaches it through the Service, e.g.
+  `http://paperless-ai.paperless-ai.svc.cluster.local:3000`. While paperless-ai is unreachable, Paperless-ngx
+  cannot consume scans.
+- 4.7.1: scripts that sign in with a password and use the session cookie need the header `X-Requested-With` for
+  changes; API keys are not affected.
+
 ==== To chart 1.1.0 (paperless-ai 4.5)
 
 Database migrations run on the first start (4.4: prompt rules, 4.5: roles, libraries, built-in archive,
@@ -216,6 +235,9 @@ git tag -a chart-<version> -m "Chart <version>" && git push origin chart-<versio
 [cols="1,1"]
 |===
 |Helm Chart Version | paperless-ai App Version
+
+|1.2.0
+|4.7.1
 
 |1.1.0
 |4.5.1
